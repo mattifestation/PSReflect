@@ -104,7 +104,7 @@ $ImageDllCharacteristics = enum $Mod PE.IMAGE_DLLCHARACTERISTICS UInt16 @{
     TERMINAL_SERVER_AWARE = 0x8000
 } -Bitfield
 
-enum $Mod PE.IMAGE_SCN Int32 @{
+$ImageScn = enum $Mod PE.IMAGE_SCN Int32 @{
     TYPE_NO_PAD =               0x00000008 # Reserved.
     CNT_CODE =                  0x00000020 # Section contains code.
     CNT_INITIALIZED_DATA =      0x00000040 # Section contains initialized data.
@@ -267,7 +267,6 @@ $FunctionDefinitions = @(
 (func ntdll RtlGetCurrentPeb ([IntPtr]) @())
 )
 
-$Mod = New-InMemoryModule -ModuleName Win32
 $Types = $FunctionDefinitions | Add-Win32Type -Module $Mod -Namespace 'Win32'
 $Kernel32 = $Types['kernel32']
 $Ntdll = $Types['ntdll']
