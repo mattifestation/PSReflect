@@ -75,7 +75,10 @@ function func
 
         [Parameter(Position = 5)]
         [Runtime.InteropServices.CharSet]
-        $Charset
+        $Charset,
+
+        [Switch]
+        $SetLastError
     )
 
     $Properties = @{
@@ -87,6 +90,7 @@ function func
     if ($ParameterTypes) { $Properties['ParameterTypes'] = $ParameterTypes }
     if ($NativeCallingConvention) { $Properties['NativeCallingConvention'] = $NativeCallingConvention }
     if ($Charset) { $Properties['Charset'] = $Charset }
+    if ($SetLastError) { $Properties['SetLastError'] = $SetLastError }
 
     New-Object PSObject -Property $Properties
 }
@@ -138,7 +142,12 @@ stdcall.
 .PARAMETER Charset
 
 If you need to explicitly call an 'A' or 'W' Win32 function, you can
-specify the character set..
+specify the character set.
+
+.PARAMETER SetLastError
+
+Indicates whether the callee calls the SetLastError Win32 API
+function before returning from the attributed method.
 
 .PARAMETER Module
 
@@ -155,8 +164,8 @@ to a namespace consisting only of the name of the DLL.
 $Mod = New-InMemoryModule -ModuleName Win32
 
 $FunctionDefinitions = @(
-  (func kernel32 GetProcAddress ([IntPtr]) @([IntPtr], [String]) -Charset Ansi),
-  (func kernel32 GetModuleHandle ([Intptr]) @([String])),
+  (func kernel32 GetProcAddress ([IntPtr]) @([IntPtr], [String]) -Charset Ansi -SetLastError),
+  (func kernel32 GetModuleHandle ([Intptr]) @([String]) -SetLastError),
   (func ntdll RtlGetCurrentPeb ([IntPtr]) @())
 )
 
@@ -196,11 +205,15 @@ are all incorporated into the same in-memory module.
 
         [Parameter(ValueFromPipelineByPropertyName = $True)]
         [Runtime.InteropServices.CallingConvention]
-        $NativeCallingConvention = 'StdCall',
+        $NativeCallingConvention = [Runtime.InteropServices.CallingConvention]::StdCall,
 
         [Parameter(ValueFromPipelineByPropertyName = $True)]
         [Runtime.InteropServices.CharSet]
-        $Charset = 'Auto',
+        $Charset = [Runtime.InteropServices.CharSet]::Auto,
+
+        [Parameter(ValueFromPipelineByPropertyName = $True)]
+        [Switch]
+        $SetLastError,
 
         [Parameter(Mandatory = $True)]
         [Reflection.Emit.ModuleBuilder]
@@ -231,15 +244,11 @@ are all incorporated into the same in-memory module.
             }
         }
 
-        $Method = $TypeHash[$DllName].DefinePInvokeMethod(
+        $Method = $TypeHash[$DllName].DefineMethod(
             $FunctionName,
-            $DllName,
-            'Public,HideBySig,Static,PinvokeImpl',
-            [Reflection.CallingConventions]::Standard,
+            'Public,Static,PinvokeImpl',
             $ReturnType,
-            $ParameterTypes,
-            $NativeCallingConvention,
-            $Charset)
+            $ParameterTypes)
 
         # Make each ByRef parameter an Out parameter
         $i = 1
@@ -253,10 +262,20 @@ are all incorporated into the same in-memory module.
             $i++
         }
 
+        $DllImport = [Runtime.InteropServices.DllImportAttribute]
+        $SetLastErrorField = $DllImport.GetField('SetLastError')
+        $CallingConventionField = $DllImport.GetField('CallingConvention')
+        $CharsetField = $DllImport.GetField('CharSet')
+        if ($SetLastError) { $SLEValue = $True } else { $SLEValue = $False }
+
         # Equivalent to C# version of [DllImport(DllName)]
-        $Ctor = [Runtime.InteropServices.DllImportAttribute].GetConstructor([String])
-        $Attr = New-Object Reflection.Emit.CustomAttributeBuilder $Ctor, $DllName
-        $Method.SetCustomAttribute($Attr)
+        $Constructor = [Runtime.InteropServices.DllImportAttribute].GetConstructor([String])
+        $DllImportAttribute = New-Object Reflection.Emit.CustomAttributeBuilder($Constructor,
+            $DllName, [Reflection.PropertyInfo[]] @(), [Object[]] @(),
+            [Reflection.FieldInfo[]] @($SetLastErrorField, $CallingConventionField, $CharsetField),
+            [Object[]] @($SLEValue, ([Runtime.InteropServices.CallingConvention] $NativeCallingConvention), ([Runtime.InteropServices.CharSet] $Charset)))
+
+        $Method.SetCustomAttribute($DllImportAttribute)
     }
 
     END
