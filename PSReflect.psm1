@@ -601,9 +601,17 @@ New-Struct. :P
         if ($MarshalAs)
         {
             $UnmanagedType = $MarshalAs[0] -as ([Runtime.InteropServices.UnmanagedType])
-            $Size = $MarshalAs[1]
-            $AttribBuilder = New-Object Reflection.Emit.CustomAttributeBuilder($ConstructorInfo,
-                $UnmanagedType, $SizeConst, @($Size))
+            if ($MarshalAs[1])
+            {
+                $Size = $MarshalAs[1]
+                $AttribBuilder = New-Object Reflection.Emit.CustomAttributeBuilder($ConstructorInfo,
+                    $UnmanagedType, $SizeConst, @($Size))
+            }
+            else
+            {
+                $AttribBuilder = New-Object Reflection.Emit.CustomAttributeBuilder($ConstructorInfo, [Object[]] @($UnmanagedType))
+            }
+            
             $NewField.SetCustomAttribute($AttribBuilder)
         }
 
