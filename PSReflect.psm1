@@ -29,7 +29,6 @@ ModuleName is not provided, it will default to a GUID.
 $Module = New-InMemoryModule -ModuleName Win32
 #>
 
-    [OutputType([Reflection.Emit.ModuleBuilder])]
     Param
     (
         [Parameter(Position = 0)]
@@ -37,6 +36,14 @@ $Module = New-InMemoryModule -ModuleName Win32
         [String]
         $ModuleName = [Guid]::NewGuid().ToString()
     )
+
+    $LoadedAssemblies = [AppDomain]::CurrentDomain.GetAssemblies()
+
+    foreach ($Assembly in $LoadedAssemblies) {
+        if ($Assembly.FullName.Split(',')[0] -eq $ModuleName) {
+            return $Assembly
+        }
+    }
 
     $DynAssembly = New-Object Reflection.AssemblyName($ModuleName)
     $Domain = [AppDomain]::CurrentDomain
@@ -216,7 +223,7 @@ are all incorporated into the same in-memory module.
         $SetLastError,
 
         [Parameter(Mandatory = $True)]
-        [Reflection.Emit.ModuleBuilder]
+        [ValidateScript({($_ -is [Reflection.Emit.ModuleBuilder]) -or ($_ -is [Reflection.Assembly])})]
         $Module,
 
         [ValidateNotNull()]
@@ -231,55 +238,74 @@ are all incorporated into the same in-memory module.
 
     PROCESS
     {
-        # Define one type for each DLL
-        if (!$TypeHash.ContainsKey($DllName))
+        if ($Module -is [Reflection.Assembly])
         {
             if ($Namespace)
             {
-                $TypeHash[$DllName] = $Module.DefineType("$Namespace.$DllName", 'Public,BeforeFieldInit')
+                $TypeHash[$DllName] = $Module.GetType("$Namespace.$DllName")
             }
             else
             {
-                $TypeHash[$DllName] = $Module.DefineType($DllName, 'Public,BeforeFieldInit')
+                $TypeHash[$DllName] = $Module.GetType($DllName)
             }
         }
-
-        $Method = $TypeHash[$DllName].DefineMethod(
-            $FunctionName,
-            'Public,Static,PinvokeImpl',
-            $ReturnType,
-            $ParameterTypes)
-
-        # Make each ByRef parameter an Out parameter
-        $i = 1
-        foreach($Parameter in $ParameterTypes)
+        else
         {
-            if ($Parameter.IsByRef)
+            # Define one type for each DLL
+            if (!$TypeHash.ContainsKey($DllName))
             {
-                [void] $Method.DefineParameter($i, 'Out', $null)
+                if ($Namespace)
+                {
+                    $TypeHash[$DllName] = $Module.DefineType("$Namespace.$DllName", 'Public,BeforeFieldInit')
+                }
+                else
+                {
+                    $TypeHash[$DllName] = $Module.DefineType($DllName, 'Public,BeforeFieldInit')
+                }
             }
 
-            $i++
+            $Method = $TypeHash[$DllName].DefineMethod(
+                $FunctionName,
+                'Public,Static,PinvokeImpl',
+                $ReturnType,
+                $ParameterTypes)
+
+            # Make each ByRef parameter an Out parameter
+            $i = 1
+            foreach($Parameter in $ParameterTypes)
+            {
+                if ($Parameter.IsByRef)
+                {
+                    [void] $Method.DefineParameter($i, 'Out', $null)
+                }
+
+                $i++
+            }
+
+            $DllImport = [Runtime.InteropServices.DllImportAttribute]
+            $SetLastErrorField = $DllImport.GetField('SetLastError')
+            $CallingConventionField = $DllImport.GetField('CallingConvention')
+            $CharsetField = $DllImport.GetField('CharSet')
+            if ($SetLastError) { $SLEValue = $True } else { $SLEValue = $False }
+
+            # Equivalent to C# version of [DllImport(DllName)]
+            $Constructor = [Runtime.InteropServices.DllImportAttribute].GetConstructor([String])
+            $DllImportAttribute = New-Object Reflection.Emit.CustomAttributeBuilder($Constructor,
+                $DllName, [Reflection.PropertyInfo[]] @(), [Object[]] @(),
+                [Reflection.FieldInfo[]] @($SetLastErrorField, $CallingConventionField, $CharsetField),
+                [Object[]] @($SLEValue, ([Runtime.InteropServices.CallingConvention] $NativeCallingConvention), ([Runtime.InteropServices.CharSet] $Charset)))
+
+            $Method.SetCustomAttribute($DllImportAttribute)
         }
-
-        $DllImport = [Runtime.InteropServices.DllImportAttribute]
-        $SetLastErrorField = $DllImport.GetField('SetLastError')
-        $CallingConventionField = $DllImport.GetField('CallingConvention')
-        $CharsetField = $DllImport.GetField('CharSet')
-        if ($SetLastError) { $SLEValue = $True } else { $SLEValue = $False }
-
-        # Equivalent to C# version of [DllImport(DllName)]
-        $Constructor = [Runtime.InteropServices.DllImportAttribute].GetConstructor([String])
-        $DllImportAttribute = New-Object Reflection.Emit.CustomAttributeBuilder($Constructor,
-            $DllName, [Reflection.PropertyInfo[]] @(), [Object[]] @(),
-            [Reflection.FieldInfo[]] @($SetLastErrorField, $CallingConventionField, $CharsetField),
-            [Object[]] @($SLEValue, ([Runtime.InteropServices.CallingConvention] $NativeCallingConvention), ([Runtime.InteropServices.CharSet] $Charset)))
-
-        $Method.SetCustomAttribute($DllImportAttribute)
     }
 
     END
     {
+        if ($Module -is [Reflection.Assembly])
+        {
+            return $TypeHash
+        }
+
         $ReturnTypes = @{}
 
         foreach ($Key in $TypeHash.Keys)
@@ -365,7 +391,7 @@ New-Enum. :P
     Param
     (
         [Parameter(Position = 0, Mandatory = $True)]
-        [Reflection.Emit.ModuleBuilder]
+        [ValidateScript({($_ -is [Reflection.Emit.ModuleBuilder]) -or ($_ -is [Reflection.Assembly])})]
         $Module,
 
         [Parameter(Position = 1, Mandatory = $True)]
@@ -385,6 +411,11 @@ New-Enum. :P
         [Switch]
         $Bitfield
     )
+
+    if ($Module -is [Reflection.Assembly])
+    {
+        return ($Module.GetType($FullName))
+    }
 
     $EnumType = $Type -as [Type]
 
@@ -537,7 +568,7 @@ New-Struct. :P
     Param
     (
         [Parameter(Position = 1, Mandatory = $True)]
-        [Reflection.Emit.ModuleBuilder]
+        [ValidateScript({($_ -is [Reflection.Emit.ModuleBuilder]) -or ($_ -is [Reflection.Assembly])})]
         $Module,
 
         [Parameter(Position = 2, Mandatory = $True)]
@@ -556,6 +587,11 @@ New-Struct. :P
         [Switch]
         $ExplicitLayout
     )
+
+    if ($Module -is [Reflection.Assembly])
+    {
+        return ($Module.GetType($FullName))
+    }
 
     [Reflection.TypeAttributes] $StructAttributes = 'AnsiClass,
         Class,

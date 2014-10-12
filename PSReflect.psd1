@@ -3,7 +3,7 @@
 ModuleToProcess = 'PSReflect.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.0.0'
+ModuleVersion = '1.1.0.0'
 
 # ID used to uniquely identify this module
 GUID = '32c3f36a-519f-4032-9090-053956ae85e1'
