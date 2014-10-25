@@ -40,7 +40,7 @@ $Module = New-InMemoryModule -ModuleName Win32
     $LoadedAssemblies = [AppDomain]::CurrentDomain.GetAssemblies()
 
     foreach ($Assembly in $LoadedAssemblies) {
-        if ($Assembly.FullName.Split(',')[0] -eq $ModuleName) {
+        if ($Assembly.FullName -and ($Assembly.FullName.Split(',')[0] -eq $ModuleName)) {
             return $Assembly
         }
     }
