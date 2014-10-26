@@ -9,14 +9,14 @@ License: BSD 3-Clause
 
 $Mod = New-InMemoryModule -ModuleName Win32
 
-$ImageDosSignature = enum $Mod PE.IMAGE_DOS_SIGNATURE UInt16 @{
+$ImageDosSignature = psenum $Mod PE.IMAGE_DOS_SIGNATURE UInt16 @{
     DOS_SIGNATURE =    0x5A4D
     OS2_SIGNATURE =    0x454E
     OS2_SIGNATURE_LE = 0x454C
     VXD_SIGNATURE =    0x454C
 }
 
-$ImageFileMachine = enum $Mod PE.IMAGE_FILE_MACHINE UInt16 @{
+$ImageFileMachine = psenum $Mod PE.IMAGE_FILE_MACHINE UInt16 @{
     UNKNOWN =   0x0000
     I386 =      0x014C # Intel 386.
     R3000 =     0x0162 # MIPS little-endian =0x160 big-endian
@@ -48,7 +48,7 @@ $ImageFileMachine = enum $Mod PE.IMAGE_FILE_MACHINE UInt16 @{
     CEE =       0xC0EE
 }
 
-$ImageFileCharacteristics = enum $Mod PE.IMAGE_FILE_CHARACTERISTICS UInt16 @{
+$ImageFileCharacteristics = psenum $Mod PE.IMAGE_FILE_CHARACTERISTICS UInt16 @{
     IMAGE_RELOCS_STRIPPED =         0x0001 # Relocation info stripped from file.
     IMAGE_EXECUTABLE_IMAGE =        0x0002 # File is executable  (i.e. no unresolved external references).
     IMAGE_LINE_NUMS_STRIPPED =      0x0004 # Line nunbers stripped from file.
@@ -66,16 +66,16 @@ $ImageFileCharacteristics = enum $Mod PE.IMAGE_FILE_CHARACTERISTICS UInt16 @{
     IMAGE_REVERSED_HI =             0x8000 # public bytes of machine public ushort are reversed.
 } -Bitfield
 
-$ImageHdrMagic = enum $Mod PE.IMAGE_NT_OPTIONAL_HDR_MAGIC UInt16 @{
+$ImageHdrMagic = psenum $Mod PE.IMAGE_NT_OPTIONAL_HDR_MAGIC UInt16 @{
     PE32 = 0x010B
     PE64 = 0x020B
 }
 
-$ImageNTSig = enum $Mod PE.IMAGE_NT_SIGNATURE UInt32 @{
+$ImageNTSig = psenum $Mod PE.IMAGE_NT_SIGNATURE UInt32 @{
     VALID_PE_SIGNATURE = 0x00004550
 }
 
-$ImageSubsystem = enum $Mod PE.IMAGE_SUBSYSTEM UInt16 @{
+$ImageSubsystem = psenum $Mod PE.IMAGE_SUBSYSTEM UInt16 @{
     UNKNOWN =                  0
     NATIVE =                   1 # Image doesn't require a subsystem.
     WINDOWS_GUI =              2 # Image runs in the Windows GUI subsystem.
@@ -92,7 +92,7 @@ $ImageSubsystem = enum $Mod PE.IMAGE_SUBSYSTEM UInt16 @{
     WINDOWS_BOOT_APPLICATION = 16
 }
 
-$ImageDllCharacteristics = enum $Mod PE.IMAGE_DLLCHARACTERISTICS UInt16 @{
+$ImageDllCharacteristics = psenum $Mod PE.IMAGE_DLLCHARACTERISTICS UInt16 @{
     HIGH_ENTROPY_VA =       0x0020 # Opts in to high entropy ASLR
     DYNAMIC_BASE =          0x0040 # DLL can move.
     FORCE_INTEGRITY =       0x0080 # Code Integrity Image
@@ -104,7 +104,7 @@ $ImageDllCharacteristics = enum $Mod PE.IMAGE_DLLCHARACTERISTICS UInt16 @{
     TERMINAL_SERVER_AWARE = 0x8000
 } -Bitfield
 
-$ImageScn = enum $Mod PE.IMAGE_SCN Int32 @{
+$ImageScn = psenum $Mod PE.IMAGE_SCN Int32 @{
     TYPE_NO_PAD =               0x00000008 # Reserved.
     CNT_CODE =                  0x00000020 # Section contains code.
     CNT_INITIALIZED_DATA =      0x00000040 # Section contains initialized data.

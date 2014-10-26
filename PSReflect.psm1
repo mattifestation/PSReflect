@@ -320,7 +320,7 @@ are all incorporated into the same in-memory module.
 }
 
 
-function enum
+function psenum
 {
 <#
 .SYNOPSIS
@@ -334,7 +334,7 @@ Optional Dependencies: None
  
 .DESCRIPTION
 
-The 'enum' function facilitates the creation of enums entirely in
+The 'psenum' function facilitates the creation of enums entirely in
 memory using as close to a "C style" as PowerShell will allow.
 
 .PARAMETER Module
@@ -362,7 +362,7 @@ Specifies that the enum should be treated as a bitfield.
 
 $Mod = New-InMemoryModule -ModuleName Win32
 
-$ImageSubsystem = enum $Mod PE.IMAGE_SUBSYSTEM UInt16 @{
+$ImageSubsystem = psenum $Mod PE.IMAGE_SUBSYSTEM UInt16 @{
     UNKNOWN =                  0
     NATIVE =                   1 # Image doesn't require a subsystem.
     WINDOWS_GUI =              2 # Image runs in the Windows GUI subsystem.
@@ -521,7 +521,7 @@ Indicates that an explicit offset for each field will be specified.
 
 $Mod = New-InMemoryModule -ModuleName Win32
 
-$ImageDosSignature = enum $Mod PE.IMAGE_DOS_SIGNATURE UInt16 @{
+$ImageDosSignature = psenum $Mod PE.IMAGE_DOS_SIGNATURE UInt16 @{
     DOS_SIGNATURE =    0x5A4D
     OS2_SIGNATURE =    0x454E
     OS2_SIGNATURE_LE = 0x454C
