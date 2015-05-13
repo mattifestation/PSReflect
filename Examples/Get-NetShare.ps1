@@ -1,11 +1,12 @@
 #requires -version 2
 
-
 function Get-NetShare {
     <#
         .SYNOPSIS
         Gets share information for a specified server.
-        By @harmj0y
+
+        Author: @harmj0y
+        License: BSD 3-Clause
     
         .DESCRIPTION
         This function will execute the NetShareEnum Win32API call to query
@@ -93,16 +94,15 @@ $Mod = New-InMemoryModule -ModuleName Win32
 
 # all of the Win32 API functions we need
 $FunctionDefinitions = @(
-    (func netapi32 NetSessionEnum ([Int]) @([string], [string], [string], [Int], [IntPtr].MakeByRefType(), [Int], [Int32].MakeByRefType(), [Int32].MakeByRefType(), [Int32].MakeByRefType())),
+    (func netapi32 NetShareEnum ([Int]) @([string], [Int], [IntPtr].MakeByRefType(), [Int], [Int32].MakeByRefType(), [Int32].MakeByRefType(), [Int32].MakeByRefType())),
     (func netapi32 NetApiBufferFree ([Int]) @([IntPtr]))
 )
 
-# the NetSessionEnum result structure
-$SESSION_INFO_10 = struct $Mod SESSION_INFO_10 @{
-    sesi10_cname = field 0 String -MarshalAs @('LPWStr')
-    sesi10_username = field 1 String -MarshalAs @('LPWStr')
-    sesi10_time = field 2 UInt32
-    sesi10_idle_time = field 3 UInt32
+# the NetShareEnum result structure
+$SHARE_INFO_1 = struct $Mod SHARE_INFO_1 @{
+    shi1_netname = field 0 String -MarshalAs @('LPWStr')
+    shi1_type = field 1 UInt32
+    shi1_remark = field 2 String -MarshalAs @('LPWStr')
 }
 
 $Types = $FunctionDefinitions | Add-Win32Type -Module $Mod -Namespace 'Win32'
