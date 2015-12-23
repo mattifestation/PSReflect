@@ -84,6 +84,9 @@ function func
         [Runtime.InteropServices.CharSet]
         $Charset,
 
+        [String]
+        $EntryPoint,
+
         [Switch]
         $SetLastError
     )
@@ -98,6 +101,7 @@ function func
     if ($NativeCallingConvention) { $Properties['NativeCallingConvention'] = $NativeCallingConvention }
     if ($Charset) { $Properties['Charset'] = $Charset }
     if ($SetLastError) { $Properties['SetLastError'] = $SetLastError }
+    if ($EntryPoint) { $Properties['EntryPoint'] = $EntryPoint }
 
     New-Object PSObject -Property $Properties
 }
@@ -132,6 +136,12 @@ The name of the DLL.
 .PARAMETER FunctionName
 
 The name of the target function.
+
+.PARAMETER EntryPoint
+
+The DLL export function name. This argument should be specified if the
+specified function name is different than the name of the exported
+function.
 
 .PARAMETER ReturnType
 
@@ -201,6 +211,10 @@ are all incorporated into the same in-memory module.
         [Parameter(Mandatory = $True, ValueFromPipelineByPropertyName = $True)]
         [String]
         $FunctionName,
+
+        [Parameter(ValueFromPipelineByPropertyName = $True)]
+        [String]
+        $EntryPoint,
 
         [Parameter(Mandatory = $True, ValueFromPipelineByPropertyName = $True)]
         [Type]
@@ -286,14 +300,23 @@ are all incorporated into the same in-memory module.
             $SetLastErrorField = $DllImport.GetField('SetLastError')
             $CallingConventionField = $DllImport.GetField('CallingConvention')
             $CharsetField = $DllImport.GetField('CharSet')
+            $EntryPointField = $DllImport.GetField('EntryPoint')
             if ($SetLastError) { $SLEValue = $True } else { $SLEValue = $False }
+
+            if ($PSBoundParameters['EntryPoint']) { $ExportedFuncName = $EntryPoint } else { $ExportedFuncName = $FunctionName }
 
             # Equivalent to C# version of [DllImport(DllName)]
             $Constructor = [Runtime.InteropServices.DllImportAttribute].GetConstructor([String])
             $DllImportAttribute = New-Object Reflection.Emit.CustomAttributeBuilder($Constructor,
                 $DllName, [Reflection.PropertyInfo[]] @(), [Object[]] @(),
-                [Reflection.FieldInfo[]] @($SetLastErrorField, $CallingConventionField, $CharsetField),
-                [Object[]] @($SLEValue, ([Runtime.InteropServices.CallingConvention] $NativeCallingConvention), ([Runtime.InteropServices.CharSet] $Charset)))
+                [Reflection.FieldInfo[]] @($SetLastErrorField,
+                                           $CallingConventionField,
+                                           $CharsetField,
+                                           $EntryPointField),
+                [Object[]] @($SLEValue,
+                             ([Runtime.InteropServices.CallingConvention] $NativeCallingConvention),
+                             ([Runtime.InteropServices.CharSet] $Charset),
+                             $ExportedFuncName))
 
             $Method.SetCustomAttribute($DllImportAttribute)
         }
