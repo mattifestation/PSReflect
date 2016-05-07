@@ -37,7 +37,8 @@ $Module = New-InMemoryModule -ModuleName Win32
         $ModuleName = [Guid]::NewGuid().ToString()
     )
 
-    $LoadedAssemblies = [AppDomain]::CurrentDomain.GetAssemblies()
+    $AppDomain = [Reflection.Assembly].Assembly.GetType('System.AppDomain').GetProperty('CurrentDomain').GetValue($null)
+    $LoadedAssemblies = $AppDomain.GetAssemblies()
 
     foreach ($Assembly in $LoadedAssemblies) {
         if ($Assembly.FullName -and ($Assembly.FullName.Split(',')[0] -eq $ModuleName)) {
@@ -46,7 +47,7 @@ $Module = New-InMemoryModule -ModuleName Win32
     }
 
     $DynAssembly = New-Object Reflection.AssemblyName($ModuleName)
-    $Domain = [AppDomain]::CurrentDomain
+    $Domain = $AppDomain
     $AssemblyBuilder = $Domain.DefineDynamicAssembly($DynAssembly, 'Run')
     $ModuleBuilder = $AssemblyBuilder.DefineDynamicModule($ModuleName, $False)
 
