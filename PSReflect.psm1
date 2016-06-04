@@ -37,7 +37,7 @@ $Module = New-InMemoryModule -ModuleName Win32
         $ModuleName = [Guid]::NewGuid().ToString()
     )
 
-    $AppDomain = [Reflection.Assembly].Assembly.GetType('System.AppDomain').GetProperty('CurrentDomain').GetValue($null)
+    $AppDomain = [Reflection.Assembly].Assembly.GetType('System.AppDomain').GetProperty('CurrentDomain').GetValue($null, @())
     $LoadedAssemblies = $AppDomain.GetAssemblies()
 
     foreach ($Assembly in $LoadedAssemblies) {
