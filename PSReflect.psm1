@@ -541,6 +541,10 @@ Specifies the memory alignment of fields.
 
 Indicates that an explicit offset for each field will be specified.
 
+.PARAMETER CharSet
+
+Dictates which character set marshaled strings should use.
+
 .EXAMPLE
 
 $Mod = New-InMemoryModule -ModuleName Win32
@@ -609,7 +613,10 @@ New-Struct. :P
         $PackingSize = [Reflection.Emit.PackingSize]::Unspecified,
 
         [Switch]
-        $ExplicitLayout
+        $ExplicitLayout,
+
+        [System.Runtime.InteropServices.CharSet]
+        $CharSet = [System.Runtime.InteropServices.CharSet]::Ansi
     )
 
     if ($Module -is [Reflection.Assembly])
@@ -617,8 +624,7 @@ New-Struct. :P
         return ($Module.GetType($FullName))
     }
 
-    [Reflection.TypeAttributes] $StructAttributes = 'AnsiClass,
-        Class,
+    [Reflection.TypeAttributes] $StructAttributes = 'Class,
         Public,
         Sealed,
         BeforeFieldInit'
@@ -630,6 +636,22 @@ New-Struct. :P
     else
     {
         $StructAttributes = $StructAttributes -bor [Reflection.TypeAttributes]::SequentialLayout
+    }
+
+    switch($CharSet)
+    {
+        Ansi
+        {
+            $StructAttributes = $StructAttributes -bor [Reflection.TypeAttributes]::AnsiClass
+        }
+        Auto
+        {
+            $StructAttributes = $StructAttributes -bor [Reflection.TypeAttributes]::AutoClass
+        }
+        Unicode
+        {
+            $StructAttributes = $StructAttributes -bor [Reflection.TypeAttributes]::UnicodeClass
+        s}
     }
 
     $StructBuilder = $Module.DefineType($FullName, $StructAttributes, [ValueType], $PackingSize)
