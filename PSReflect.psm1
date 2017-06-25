@@ -207,14 +207,17 @@ are all incorporated into the same in-memory module.
     Param(
         [Parameter(Mandatory = $True, ValueFromPipelineByPropertyName = $True)]
         [String]
+        [ValidateNotNullOrEmpty()]
         $DllName,
 
         [Parameter(Mandatory = $True, ValueFromPipelineByPropertyName = $True)]
         [String]
+        [ValidateNotNullOrEmpty()]
         $FunctionName,
 
         [Parameter(ValueFromPipelineByPropertyName = $True)]
         [String]
+        [ValidateNotNullOrEmpty()]
         $EntryPoint,
 
         [Parameter(Mandatory = $True, ValueFromPipelineByPropertyName = $True)]
@@ -304,12 +307,14 @@ are all incorporated into the same in-memory module.
             $EntryPointField = $DllImport.GetField('EntryPoint')
             if ($SetLastError) { $SLEValue = $True } else { $SLEValue = $False }
 
-            if ($PSBoundParameters['EntryPoint']) { $ExportedFuncName = $EntryPoint } else { $ExportedFuncName = $FunctionName }
+            if ($EntryPoint) { $ExportedFuncName = $EntryPoint } else { $ExportedFuncName = $FunctionName }
 
             # Equivalent to C# version of [DllImport(DllName)]
             $Constructor = [Runtime.InteropServices.DllImportAttribute].GetConstructor([String])
             $DllImportAttribute = New-Object Reflection.Emit.CustomAttributeBuilder($Constructor,
-                $DllName, [Reflection.PropertyInfo[]] @(), [Object[]] @(),
+                $DllName,
+                [Reflection.PropertyInfo[]] @(),
+                [Object[]] @(),
                 [Reflection.FieldInfo[]] @($SetLastErrorField,
                                            $CallingConventionField,
                                            $CharsetField,
